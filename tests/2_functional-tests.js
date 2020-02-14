@@ -38,7 +38,6 @@ suite('Functional Tests', () => {
 
   suite('Routing tests', () => {
 
-
     suite('POST /api/books with title => create book object/expect book object', () => {
       
       test('Test POST /api/books with title', (done) => {

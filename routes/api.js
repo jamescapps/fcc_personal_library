@@ -11,7 +11,7 @@ mongoose.connection.once('open', () => {
   console.log("Connected to database!")
 })
 
-module.exports =  (app) => {
+module.exports = (app) => {
 
   app.route('/api/books')
     .get(function (req, res){
