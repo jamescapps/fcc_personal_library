@@ -1,131 +1,79 @@
-/*
-*
-*
-*       Complete the API routing below
-*       
-*       
-*/
-
-'use strict';
-
-var expect = require('chai').expect;
-var MongoClient = require('mongodb').MongoClient;
-var ObjectId = require('mongodb').ObjectId;
-const MONGODB_CONNECTION_STRING = process.env.DB;
-//Example connection: MongoClient.connect(MONGODB_CONNECTION_STRING, function(err, db) {});
+'use strict'
 
 const mongoose = require('mongoose')
 const Book = require('../models/new_book.model')
 
-
-//mongoose.connect(process.env.MONGODB_URI, { useUnifiedTopology: true, useNewUrlParser: true })
-mongoose.connect('mongodb://localhost/personal_library', { useUnifiedTopology: true, useNewUrlParser: true }) 
+mongoose.connect(process.env.MONGODB_URI, { useUnifiedTopology: true, useNewUrlParser: true })
+//mongoose.connect('mongodb://localhost/personal_library', { useUnifiedTopology: true, useNewUrlParser: true }) 
 
 //Test connection
 mongoose.connection.once('open', () => {
   console.log("Connected to database!")
 })
 
-module.exports = function (app) {
+module.exports =  (app) => {
 
   app.route('/api/books')
     .get(function (req, res){
       Book.find(req.query, (err, result) => {
-        //Get comment count.
-        for (var i = 0; i < result.length; i++) {
+        //Get comment count and remove comments field.
+        for (let i = 0; i < result.length; i++) {
           result[i].commentcount = result[i].comments.length
           result[i].comments = undefined
         }
         res.send(result)
       })
-      //response will be array of book objects
-      //json res format: [{"_id": bookid, "title": book_title, "commentcount": num_of_comments },...]
     })
     
     .post(function (req, res){
-      var title = req.body.title;
-      console.log(title)
-      if (!title) {
-        res.send("Please enter a title.")
-        return
-      }
+      let title = req.body.title
+      let newBook = new Book({title: title})
 
-      const newBook = new Book(
-        {
-          title: title
-        }
-      )
-      newBook.save()
-        .then(() => res.json(newBook))
-        .catch(err => res.status(400).json('Error: ' + err))
-      //response will contain new book object including atleast _id and title
+      !title ? res.send("Please enter a title.")  
+      : newBook.save()
+          .then(() => res.json(newBook))
+          .catch(err => res.status(400).json('Error: ' + err))
     })
     
     .delete(function(req, res){
-      Book.remove({}, function(err) { 
-        return res.send('complete delete successful')
-        
-     });
-      //if successful response will be 'complete delete successful'
-    });
-
+      Book.deleteMany({}, (err, result) => {
+        err ? res.send(err) : res.send('complete delete successful')
+      }) 
+    })
 
 
   app.route('/api/books/:id')
     .get(function (req, res){
-      var bookid = req.params.id;
+      let bookid = req.params.id;
       Book.findById({_id: bookid}, (err, result) => {
-        if (!result) {
-          res.send('No book exists.')
-        } else if (err) {
-          res.send ('Error with database.')
-        } else {
-          res.send(result)
-        }
-        
+        !result ? res.send('no book exists') 
+                : (err) ? res.send ('Error with database.')
+                : res.send(result) 
       })
-      //json res format: {"_id": bookid, "title": book_title, "comments": [comment,comment,...]}
     })
     
     .post(function(req, res){
-      var bookid = req.params.id;
-      var comment = req.body.comment;
-      //json res format same as .get
-      if (!bookid) {
-        res.send('Please enter a title.')
-        return
-      }
+      let bookid = req.params.id
+      let comment = req.body.comment
 
-      if (!comment) {
-        res.send('Please enter a comment.')
-        return
-      }
-        
-      console.log({ comment })
-     Book.findById({_id: bookid}, (err, result) => {
-        if (!result) {
-          res.send('Book not found.')
-        } else if(err) {
-          res.send('Error with database.')
-        } else {
-          result.comments.push({comment})
-          result.save()
-            .then(() => res.send(result))
-            .catch(err => res.send(err))
-        }
-      })
+      !bookid ? res.send('Please enter a title.') 
+              : (!comment) ? res.send('Please enter a comment.')
+              : Book.findById({_id: bookid}, (err, result) => {
+                !result ? res.send('Book not found.')
+                        : (err) ? res.send('Error with database.')
+                        : result.comments.push(comment)
+                          result.save()
+                           .then(() => res.send(result))
+                           .catch(err => res.send(err))
+               })
     })
     
     .delete(function(req, res){
-      var bookid = req.params.id;
-      //if successful response will be 'delete successful'
+      let bookid = req.params.id;
+
       Book.findByIdAndDelete(bookid, (err, result) => {
-        if (err) {
-          res.send('Error contacting database')
-        } else {
-          res.send('delete successful')
-        }
+        err ? res.send('Error contacting database') : res.send('delete successful')
       })
-    });
+    })
   
-};
+}
